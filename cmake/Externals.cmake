@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.18)
 
 include(FetchContent)
 
+FetchContent_Declare(
+  catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  #v2.13.5
+  GIT_TAG        42e368dd0aedc122798008d8c4f583fea3296a97
+)
+
 #FetchContent_Declare(
 #  cereal
 #  GIT_REPOSITORY https://github.com/USCiLab/cereal.git
@@ -17,6 +24,7 @@ include(FetchContent)
 FetchContent_Declare(
   entt
   GIT_REPOSITORY https://github.com/skypjack/entt.git
+  #v3.7.0
   GIT_TAG        1e07b981f0b305400f854084c61c4efe2fd36206
 )
 
@@ -27,6 +35,7 @@ FetchContent_Declare(
 #)
 
 FetchContent_MakeAvailable(
+	catch2
 #	cereal
 #	doxygen
 	entt
