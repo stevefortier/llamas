@@ -1,3 +1,6 @@
+# Output & intermediate folders
+build/
+
 # Prerequisites
 *.d
 
