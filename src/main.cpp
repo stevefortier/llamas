@@ -1,5 +1,5 @@
-#include "scene/Scene.hpp"
+#include "scene/SceneLoader.hpp"
 
 int main() {
-  doit();
+	return 0;
 }
