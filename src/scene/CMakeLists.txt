@@ -6,7 +6,6 @@ set(SOURCE_FILES
     SceneGraph.hpp
     SceneLoader.cpp
     SceneLoader.hpp
-    SceneNode.cpp
     SceneNode.hpp
     SceneTransition.hpp
     )

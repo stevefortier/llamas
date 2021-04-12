@@ -4,7 +4,7 @@
 
 using namespace llama;
 
-TEST_CASE("It did it") {
-	auto node = SceneNode("empty");
-    CHECK(node.getName().compare("empty") == 0);
+TEST_CASE("Single Node") {
+    auto node = SceneNode("single");
+    CHECK(node.getName().compare("single") == 0);
 }
