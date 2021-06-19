@@ -1,20 +1,7 @@
 
 /*
 
-package eggscape.core.world.scene;
-
-import com.artemis.Entity;
-import com.artemis.World;
-import com.artemis.utils.ImmutableBag;
-
-import eggscape.core.Logger;
-import eggscape.core.Logger.Category;
-import eggscape.core.world.entities.EntityFactory;
-import eggscape.core.xml.SceneXmlData;
-import eggscape.core.xml.XmlLoader;
-import eggscape.core.xml.exceptions.XmlLoadingException;
-
-public class SceneLoader {
+class SceneLoader {
 
     private final ScenesGraph scenesGraph = new ScenesGraph();
     private final String scenesPath;

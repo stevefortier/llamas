@@ -4,9 +4,9 @@ include(FetchContent)
 
 FetchContent_Declare(
   catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_REPOSITORY https://github.com/stevefortier/Catch2.git
   #v2.13.5
-  GIT_TAG        42e368dd0aedc122798008d8c4f583fea3296a97
+  GIT_TAG        202e46e116273ceeaf0b6a17464fcd99e810963e
 )
 
 #FetchContent_Declare(

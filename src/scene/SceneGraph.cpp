@@ -1,126 +1,109 @@
+#include "SceneGraph.hpp"
 
+#include <algorithm>
+#include <vector>
 
-/*
+namespace llama {
 
-package eggscape.core.world.scene;
+void ScenesGraph::markSceneForAdd(const std::string& sceneToAddName, std::optional<std::string> parentSceneName,
+        const std::vector<std::string>& dependenciesNames) {
+    // Validate that if a parent scene is given, it already exists in the
+    // graph
+    if (parentSceneName.has_value() && findScene(parentSceneName.value()).has_value()) {
+        //Logger.logError(Category.LOADING,
+        //        "Trying to load a scene with an invalid parent");
+        return;
+    }
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+    // Create a new scene node or use the one that we already have in the
+    // graph
+    auto sceneNodeBeingAdded = findScene(sceneToAddName);
+    if (!sceneNodeBeingAdded.has_value()) {
+        sceneNodeBeingAdded = std::make_shared<SceneNode>(sceneToAddName);
+    }
 
-import eggscape.core.Logger;
-import eggscape.core.Logger.Category;
+    // If no parent have been specified, add the newly created node as a
+    // root node
+    if (!parentSceneName.has_value()) {
+        rootNodes.push_back(sceneNodeBeingAdded.value());
+        sceneNodeBeingAdded.value().get()->retain();
+    } else {
+        // Add the newly created scene node as a dependency of its parent
+        auto parentSceneNode = findScene(parentSceneName.value());
+        parentSceneNode.value().get()->addDependency(sceneNodeBeingAdded.value());
+    }
 
-public class ScenesGraph {
-
-    private List<SceneNode> rootNodes = new ArrayList<SceneNode>();
-
-    public void markSceneForAdd(String sceneToAddName, String parentSceneName,
-            String[] dependenciesNames) {
-        // Validate that if a parent scene is given, it already exists in the
-        // graph
-        if (parentSceneName != null && findScene(parentSceneName) == null) {
-            Logger.logError(Category.LOADING,
-                    "Trying to load a scene with an invalid parent");
-            return;
-        }
-
-        // Create a new scene node or use the one that we already have in the
-        // graph
-        SceneNode sceneNodeBeingAdded = findScene(sceneToAddName);
-        if (sceneNodeBeingAdded == null) {
-            sceneNodeBeingAdded = new SceneNode(sceneToAddName);
-        }
-
-        // If no parent have been specified, add the newly created node as a
-        // root node
-        if (parentSceneName == null) {
-            rootNodes.add(sceneNodeBeingAdded);
-            sceneNodeBeingAdded.retain();
+    // Create all inexistent dependencies and link them
+    for (auto dependency : dependenciesNames) {
+        auto dependencyNode = findScene(dependency);
+        if (!dependencyNode.has_value()) {
+            dependencyNode = std::make_shared<SceneNode>(dependency);
         } else {
-            // Add the newly created scene node as a dependency of its parent
-            SceneNode parentSceneNode = findScene(parentSceneName);
-            parentSceneNode.addDependency(sceneNodeBeingAdded);
-        }
-
-        // Create all inexistent dependencies and link them
-        for (String dependency : dependenciesNames) {
-            SceneNode dependencyNode = findScene(dependency);
-            if (dependencyNode == null) {
-                dependencyNode = new SceneNode(dependency);
-            } else {
-                // Remove the dependency from the root nodes if it's an old root
-                // node
-                if (rootNodes.contains(dependencyNode)
-                        && dependencyNode.getRefCount() == 0) {
-                    rootNodes.remove(dependencyNode);
+            // Remove the dependency from the root nodes if it's an old root
+            // node
+            for (auto sceneNode : rootNodes) {
+                if (sceneNode->getName().compare(dependency) == 0
+                    && sceneNode->getRefCount() == 0) {                
+                    //rootNodes.remove(dependencyNode);
                 }
             }
-            sceneNodeBeingAdded.addDependency(dependencyNode);
         }
+        //sceneNodeBeingAdded.addDependency(dependencyNode);
+    }
+}
+
+void ScenesGraph::markSceneForRemove(const std::string& sceneToRemoveName) {
+    auto sceneToRemoveNode = findScene(sceneToRemoveName);
+    if (!sceneToRemoveNode.has_value()) {
+        //Logger.logError(Category.LOADING,
+        //        "Trying to remove unexistant scene");
+        return;
     }
 
-    public void markSceneForRemove(String sceneToRemoveName) {
-        SceneNode sceneToRemoveNode = findScene(sceneToRemoveName);
-        if (sceneToRemoveNode == null) {
-            Logger.logError(Category.LOADING,
-                    "Trying to remove unexistant scene");
-            return;
-        }
+    sceneToRemoveNode.value().get()->destroy();
+}
 
-        sceneToRemoveNode.destroy();
+void ScenesGraph::markAllScenesForRemove() {
+    for (auto rootNode : rootNodes) {
+        rootNode.get()->release();
     }
+}
 
-    public void markAllScenesForRemove() {
-        for (SceneNode rootNode : rootNodes) {
-            if (rootNode != null) {
-                rootNode.release();
-            }
-        }
+void ScenesGraph::buildLevelsToUnloadList(std::vector<std::string>& levelsToUnload) {
+    std::vector<const SceneNode*> visitedNodes;
+    for (auto rootNode : rootNodes) {
+        rootNode.get()->buildLevelsToUnloadListRecursive(levelsToUnload, visitedNodes);
     }
+    std::reverse(levelsToUnload.begin(),levelsToUnload.end());
+}
 
-    private SceneNode findScene(String sceneName) {
-        for (SceneNode rootNode : rootNodes) {
-            SceneNode foundSceneNode = rootNode.findScene(sceneName);
-            if (foundSceneNode != null) {
-                return foundSceneNode;
-            }
-        }
-        return null;
+void ScenesGraph::buildLevelsToLoadList(std::vector<std::string>& levelsToLoad) {
+    std::vector<const SceneNode*> visitedNodes;
+    for (auto rootNode : rootNodes) {
+        rootNode.get()->buildLevelsToLoadListRecursive(levelsToLoad, visitedNodes);
     }
+}
 
-    public String[] buildLevelsToUnloadList() {
-        List<String> scenesToUnloadNames = new ArrayList<String>();
-        List<SceneNode> visitedNodes = new ArrayList<SceneNode>();
-        for (SceneNode rootNode : rootNodes) {
-            rootNode.buildLevelsToUnloadListRecursive(scenesToUnloadNames,
-                    visitedNodes);
+void ScenesGraph::clean() {
+    /*Iterator<SceneNode> iter = rootNodes.iterator();
+    while (iter.hasNext()) {
+        SceneNode rootNode = iter.next();
+        if (rootNode.getRefCount() == 0) {
+            iter.remove();
+        } else {
+            rootNode.cleanGraphRecursive();
         }
-        Collections.reverse(scenesToUnloadNames);
-        return scenesToUnloadNames.toArray(new String[scenesToUnloadNames
-                .size()]);
-    }
+    }*/
+}
 
-    public String[] buildLevelsToLoadList() {
-        List<String> scenesToLoadNames = new ArrayList<String>();
-        List<SceneNode> visitedNodes = new ArrayList<SceneNode>();
-        for (SceneNode rootNode : rootNodes) {
-            rootNode.buildLevelsToLoadListRecursive(scenesToLoadNames,
-                    visitedNodes);
-        }
-        return scenesToLoadNames.toArray(new String[scenesToLoadNames.size()]);
-    }
-
-    public void clean() {
-        Iterator<SceneNode> iter = rootNodes.iterator();
-        while (iter.hasNext()) {
-            SceneNode rootNode = iter.next();
-            if (rootNode.getRefCount() == 0) {
-                iter.remove();
-            } else {
-                rootNode.cleanGraphRecursive();
-            }
+std::optional<std::shared_ptr<SceneNode>> ScenesGraph::findScene(const std::string& sceneName) {
+    for (auto rootNode : rootNodes) {
+        auto foundSceneNode = rootNode.get()->findScene(sceneName);
+        if (foundSceneNode.get() != nullptr) {
+            return foundSceneNode;
         }
     }
-}*/
+    return std::nullopt;
+}
+
+}
